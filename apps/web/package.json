@@ -1,0 +1,25 @@
+{
+  "name": "@picloud/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build && node scripts/prepare-standalone.mjs",
+    "start": "HOSTNAME=0.0.0.0 PORT=3000 node .next/standalone/apps/web/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@picloud/contracts": "workspace:*",
+    "next": "16.2.10",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.2",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "postcss": "8.5.19",
+    "tailwindcss": "4.3.2",
+    "typescript": "5.9.3"
+  }
+}

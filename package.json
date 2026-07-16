@@ -1,0 +1,24 @@
+{
+  "name": "picloud",
+  "version": "0.2.0",
+  "private": "true",
+  "packageManager": "pnpm@11.13.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @picloud/web --filter @picloud/api --filter @picloud/worker dev",
+    "build": "pnpm --filter @picloud/web build && pnpm --filter @picloud/api build && pnpm --filter @picloud/worker build",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @picloud/database db:generate",
+    "db:migrate": "pnpm --filter @picloud/database db:migrate",
+    "db:studio": "pnpm --filter @picloud/database db:studio"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "prettier": "3.9.5",
+    "typescript": "5.9.3"
+  }
+}

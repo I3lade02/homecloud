@@ -1,0 +1,198 @@
+name: picloud
+
+services:
+  postgres:
+    image: postgres:18-alpine
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-picloud}
+
+      POSTGRES_USER: ${POSTGRES_USER:-picloud}
+
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-picloud-dev-password}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-picloud} -d ${POSTGRES_DB:-picloud}",
+        ]
+
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey:9-alpine
+
+    command:
+      - valkey-server
+      - --appendonly
+      - "yes"
+      - --appendfsync
+      - everysec
+      - --maxmemory-policy
+      - noeviction
+
+    volumes:
+      - valkey_data:/data
+
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+    restart: unless-stopped
+
+  migrate:
+    build:
+      context: .
+
+      dockerfile: infrastructure/docker/api.Dockerfile
+
+    command: ["pnpm", "--filter", "@picloud/database", "db:migrate"]
+
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://picloud:picloud-dev-password@postgres:5432/picloud}
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    restart: "no"
+
+  api:
+    build:
+      context: .
+
+      dockerfile: infrastructure/docker/api.Dockerfile
+
+    environment:
+      NODE_ENV: production
+
+      PICLOUD_NAME: ${PICLOUD_NAME:-PiCloud}
+
+      PICLOUD_VERSION: ${PICLOUD_VERSION:-0.2.0}
+
+      DATABASE_URL: ${DATABASE_URL:-postgresql://picloud:picloud-dev-password@postgres:5432/picloud}
+
+      VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
+
+      STORAGE_PATH: ${STORAGE_PATH:-/data}
+
+      API_HOST: 0.0.0.0
+      API_PORT: 4000
+
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+
+      SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
+
+    ports:
+      - "4000:4000"
+
+    volumes:
+      - picloud_data:/data
+
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+      valkey:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:4000/health/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+
+      dockerfile: infrastructure/docker/worker.Dockerfile
+
+    environment:
+      NODE_ENV: production
+
+      PICLOUD_NAME: ${PICLOUD_NAME:-PiCloud}
+
+      PICLOUD_VERSION: ${PICLOUD_VERSION:-0.2.0}
+
+      DATABASE_URL: ${DATABASE_URL:-postgresql://picloud:picloud-dev-password@postgres:5432/picloud}
+
+      VALKEY_URL: ${VALKEY_URL:-redis://valkey:6379}
+
+      STORAGE_PATH: ${STORAGE_PATH:-/data}
+
+    volumes:
+      - picloud_data:/data
+
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+      valkey:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+
+      dockerfile: infrastructure/docker/web.Dockerfile
+
+    environment:
+      NODE_ENV: production
+
+      PICLOUD_NAME: ${PICLOUD_NAME:-PiCloud}
+
+      API_INTERNAL_URL: ${API_INTERNAL_URL:-http://api:4000}
+
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+
+    ports:
+      - "3000:3000"
+
+    depends_on:
+      api:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  valkey_data:
+  picloud_data:
