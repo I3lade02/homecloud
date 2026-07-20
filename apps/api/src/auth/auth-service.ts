@@ -4,6 +4,7 @@ import type { AuthUser } from "@picloud/contracts";
 
 import {
   auditLogs,
+  driveNodes,
   sessions,
   users,
   type Database,
@@ -149,6 +150,20 @@ export async function createAuthService(db: Database, sessionTtlDays: number) {
       if (!createdUser) {
         throw new Error("Unable to create the initial owner account");
       }
+
+      await transaction.insert(driveNodes).values({
+        ownerId: createdUser.id,
+
+        parentId: null,
+
+        kind: "folder",
+
+        name: "Moje soubory",
+
+        normalizedName: "moje soubory",
+
+        isRoot: true,
+    });
 
       await transaction.insert(auditLogs).values({
         actorUserId: createdUser.id,

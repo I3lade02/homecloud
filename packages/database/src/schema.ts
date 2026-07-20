@@ -1,8 +1,14 @@
-import { relations } from "drizzle-orm";
+import {
+  relations,
+  sql,
+} from "drizzle-orm";
 
 import {
+  type AnyPgColumn,
+  bigint,
   boolean,
   char,
+  check,
   index,
   inet,
   jsonb,
@@ -10,16 +16,48 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
 
-export const userRoleEnum = pgEnum("user_role", ["owner", "admin", "member"]);
+export const userRoleEnum = pgEnum(
+  "user_role",
+  [
+    "owner",
+    "admin",
+    "member",
+  ],
+);
+
+export const driveNodeKindEnum = pgEnum(
+  "drive_node_kind",
+  [
+    "folder",
+    "file",
+  ],
+);
+
+export const fileStatusEnum = pgEnum(
+  "file_status",
+  [
+    "pending",
+    "ready",
+    "quarantined",
+    "failed",
+  ],
+);
+
+/*
+ * Users
+ */
 
 export const users = pgTable(
   "users",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
+    id: uuid("id")
+      .defaultRandom()
+      .primaryKey(),
 
     email: varchar("email", {
       length: 320,
@@ -27,143 +65,567 @@ export const users = pgTable(
       .notNull()
       .unique(),
 
-    displayName: varchar("display_name", {
-      length: 80,
-    }).notNull(),
+    displayName: varchar(
+      "display_name",
+      {
+        length: 80,
+      },
+    ).notNull(),
 
-    passwordHash: text("password_hash").notNull(),
+    passwordHash: text(
+      "password_hash",
+    ).notNull(),
 
-    role: userRoleEnum("role").default("member").notNull(),
+    role: userRoleEnum("role")
+      .default("member")
+      .notNull(),
 
-    isActive: boolean("is_active").default(true).notNull(),
+    isActive: boolean("is_active")
+      .default(true)
+      .notNull(),
 
-    createdAt: timestamp("created_at", {
-      withTimezone: true,
-    })
+    createdAt: timestamp(
+      "created_at",
+      {
+        withTimezone: true,
+      },
+    )
       .defaultNow()
       .notNull(),
 
-    updatedAt: timestamp("updated_at", {
-      withTimezone: true,
-    })
+    updatedAt: timestamp(
+      "updated_at",
+      {
+        withTimezone: true,
+      },
+    )
       .defaultNow()
       .notNull(),
 
-    lastLoginAt: timestamp("last_login_at", {
-      withTimezone: true,
-    }),
+    lastLoginAt: timestamp(
+      "last_login_at",
+      {
+        withTimezone: true,
+      },
+    ),
   },
   (table) => [
-    index("users_role_idx").on(table.role),
-    index("users_active_idx").on(table.isActive),
+    index("users_role_idx").on(
+      table.role,
+    ),
+
+    index("users_active_idx").on(
+      table.isActive,
+    ),
   ],
 );
+
+/*
+ * Virtual file tree
+ *
+ * Složky i soubory jsou uzly
+ * stejného stromu.
+ */
+
+export const driveNodes = pgTable(
+  "drive_nodes",
+  {
+    id: uuid("id")
+      .defaultRandom()
+      .primaryKey(),
+
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(
+        () => users.id,
+        {
+          onDelete: "cascade",
+        },
+      ),
+
+    /*
+     * Explicitní návratový typ
+     * je potřeba kvůli
+     * self-reference tabulky.
+     */
+    parentId: uuid("parent_id")
+      .references(
+        (): AnyPgColumn =>
+          driveNodes.id,
+        {
+          onDelete: "cascade",
+        },
+      ),
+
+    kind: driveNodeKindEnum(
+      "kind",
+    ).notNull(),
+
+    name: varchar("name", {
+      length: 255,
+    }).notNull(),
+
+    /*
+     * Slouží pro kontrolu
+     * duplicit bez ohledu
+     * na velikost písmen.
+     */
+    normalizedName: varchar(
+      "normalized_name",
+      {
+        length: 255,
+      },
+    ).notNull(),
+
+    isRoot: boolean("is_root")
+      .default(false)
+      .notNull(),
+
+    createdAt: timestamp(
+      "created_at",
+      {
+        withTimezone: true,
+      },
+    )
+      .defaultNow()
+      .notNull(),
+
+    updatedAt: timestamp(
+      "updated_at",
+      {
+        withTimezone: true,
+      },
+    )
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    /*
+     * Každý uživatel může mít
+     * jen jeden root.
+     */
+    uniqueIndex(
+      "drive_nodes_one_root_per_owner_idx",
+    )
+      .on(table.ownerId)
+      .where(
+        sql`${table.isRoot} = true`,
+      ),
+
+    /*
+     * Ve stejné složce nesmí
+     * existovat dvě položky
+     * se stejným názvem.
+     */
+    uniqueIndex(
+      "drive_nodes_parent_name_unique_idx",
+    )
+      .on(
+        table.ownerId,
+        table.parentId,
+        table.normalizedName,
+      )
+      .where(
+        sql`${table.isRoot} = false`,
+      ),
+
+    index(
+      "drive_nodes_parent_idx",
+    ).on(
+      table.ownerId,
+      table.parentId,
+    ),
+
+    index(
+      "drive_nodes_kind_idx",
+    ).on(
+      table.ownerId,
+      table.kind,
+    ),
+
+    /*
+     * Root musí být složka
+     * bez rodiče.
+     *
+     * Ostatní uzly rodiče mít musí.
+     */
+    check(
+      "drive_nodes_root_shape_check",
+
+      sql`
+        (
+          ${table.isRoot} = true
+          AND ${table.parentId} IS NULL
+          AND ${table.kind} = 'folder'
+        )
+        OR
+        (
+          ${table.isRoot} = false
+          AND ${table.parentId} IS NOT NULL
+        )
+      `,
+    ),
+  ],
+);
+
+/*
+ * Metadata fyzického souboru.
+ *
+ * Zatím žádné záznamy nevytváříme.
+ * Použijeme je v Milníku 4.
+ */
+
+export const fileEntries = pgTable(
+  "file_entries",
+  {
+    nodeId: uuid("node_id")
+      .primaryKey()
+      .references(
+        () => driveNodes.id,
+        {
+          onDelete: "cascade",
+        },
+      ),
+
+    sizeBytes: bigint(
+      "size_bytes",
+      {
+        mode: "bigint",
+      },
+    ).notNull(),
+
+    mimeType: varchar(
+      "mime_type",
+      {
+        length: 255,
+      },
+    ).notNull(),
+
+    status: fileStatusEnum(
+      "status",
+    )
+      .default("pending")
+      .notNull(),
+
+    checksumSha256: char(
+      "checksum_sha256",
+      {
+        length: 64,
+      },
+    ),
+
+    storageKey: text(
+      "storage_key",
+    ),
+
+    createdAt: timestamp(
+      "created_at",
+      {
+        withTimezone: true,
+      },
+    )
+      .defaultNow()
+      .notNull(),
+
+    updatedAt: timestamp(
+      "updated_at",
+      {
+        withTimezone: true,
+      },
+    )
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index(
+      "file_entries_status_idx",
+    ).on(table.status),
+  ],
+);
+
+/*
+ * Sessions
+ */
 
 export const sessions = pgTable(
   "sessions",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
+    id: uuid("id")
+      .defaultRandom()
+      .primaryKey(),
 
     userId: uuid("user_id")
       .notNull()
-      .references(() => users.id, {
-        onDelete: "cascade",
-      }),
+      .references(
+        () => users.id,
+        {
+          onDelete: "cascade",
+        },
+      ),
 
-    tokenHash: char("token_hash", {
-      length: 64,
-    })
+    tokenHash: char(
+      "token_hash",
+      {
+        length: 64,
+      },
+    )
       .notNull()
       .unique(),
 
-    createdAt: timestamp("created_at", {
-      withTimezone: true,
-    })
+    createdAt: timestamp(
+      "created_at",
+      {
+        withTimezone: true,
+      },
+    )
       .defaultNow()
       .notNull(),
 
-    expiresAt: timestamp("expires_at", {
-      withTimezone: true,
-    }).notNull(),
+    expiresAt: timestamp(
+      "expires_at",
+      {
+        withTimezone: true,
+      },
+    ).notNull(),
 
-    lastSeenAt: timestamp("last_seen_at", {
-      withTimezone: true,
-    })
+    lastSeenAt: timestamp(
+      "last_seen_at",
+      {
+        withTimezone: true,
+      },
+    )
       .defaultNow()
       .notNull(),
 
-    revokedAt: timestamp("revoked_at", {
-      withTimezone: true,
-    }),
+    revokedAt: timestamp(
+      "revoked_at",
+      {
+        withTimezone: true,
+      },
+    ),
 
-    ipAddress: inet("ip_address"),
+    ipAddress: inet(
+      "ip_address",
+    ),
 
-    userAgent: text("user_agent"),
+    userAgent: text(
+      "user_agent",
+    ),
   },
   (table) => [
-    index("sessions_user_id_idx").on(table.userId),
+    index(
+      "sessions_user_id_idx",
+    ).on(table.userId),
 
-    index("sessions_expires_at_idx").on(table.expiresAt),
+    index(
+      "sessions_expires_at_idx",
+    ).on(table.expiresAt),
   ],
 );
+
+/*
+ * Audit
+ */
 
 export const auditLogs = pgTable(
   "audit_logs",
   {
-    id: uuid("id").defaultRandom().primaryKey(),
+    id: uuid("id")
+      .defaultRandom()
+      .primaryKey(),
 
-    actorUserId: uuid("actor_user_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
+    actorUserId: uuid(
+      "actor_user_id",
+    ).references(
+      () => users.id,
+      {
+        onDelete: "set null",
+      },
+    ),
 
     event: varchar("event", {
       length: 80,
     }).notNull(),
 
-    ipAddress: inet("ip_address"),
+    ipAddress: inet(
+      "ip_address",
+    ),
 
-    userAgent: text("user_agent"),
+    userAgent: text(
+      "user_agent",
+    ),
 
-    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    metadata: jsonb(
+      "metadata",
+    ).$type<
+      Record<string, unknown>
+    >(),
 
-    createdAt: timestamp("created_at", {
-      withTimezone: true,
-    })
+    createdAt: timestamp(
+      "created_at",
+      {
+        withTimezone: true,
+      },
+    )
       .defaultNow()
       .notNull(),
   },
   (table) => [
-    index("audit_logs_event_idx").on(table.event),
+    index(
+      "audit_logs_event_idx",
+    ).on(table.event),
 
-    index("audit_logs_actor_idx").on(table.actorUserId),
+    index(
+      "audit_logs_actor_idx",
+    ).on(table.actorUserId),
 
-    index("audit_logs_created_at_idx").on(table.createdAt),
+    index(
+      "audit_logs_created_at_idx",
+    ).on(table.createdAt),
   ],
 );
 
-export const usersRelations = relations(users, ({ many }) => ({
-  sessions: many(sessions),
-  auditLogs: many(auditLogs),
-}));
+/*
+ * Relations
+ */
 
-export const sessionsRelations = relations(sessions, ({ one }) => ({
-  user: one(users, {
-    fields: [sessions.userId],
-    references: [users.id],
-  }),
-}));
+export const usersRelations =
+  relations(
+    users,
+    ({ many }) => ({
+      sessions:
+        many(sessions),
 
-export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
-  actor: one(users, {
-    fields: [auditLogs.actorUserId],
-    references: [users.id],
-  }),
-}));
+      auditLogs:
+        many(auditLogs),
 
-export type UserRecord = typeof users.$inferSelect;
+      driveNodes:
+        many(driveNodes),
+    }),
+  );
 
-export type NewUserRecord = typeof users.$inferInsert;
+export const sessionsRelations =
+  relations(
+    sessions,
+    ({ one }) => ({
+      user: one(users, {
+        fields: [
+          sessions.userId,
+        ],
 
-export type SessionRecord = typeof sessions.$inferSelect;
+        references: [
+          users.id,
+        ],
+      }),
+    }),
+  );
 
-export type UserRole = (typeof userRoleEnum.enumValues)[number];
+export const driveNodesRelations =
+  relations(
+    driveNodes,
+    ({ one, many }) => ({
+      owner: one(users, {
+        fields: [
+          driveNodes.ownerId,
+        ],
+
+        references: [
+          users.id,
+        ],
+      }),
+
+      parent: one(
+        driveNodes,
+        {
+          fields: [
+            driveNodes.parentId,
+          ],
+
+          references: [
+            driveNodes.id,
+          ],
+
+          relationName:
+            "drive_tree",
+        },
+      ),
+
+      children: many(
+        driveNodes,
+        {
+          relationName:
+            "drive_tree",
+        },
+      ),
+
+      file: one(
+        fileEntries,
+      ),
+    }),
+  );
+
+export const fileEntriesRelations =
+  relations(
+    fileEntries,
+    ({ one }) => ({
+      node: one(
+        driveNodes,
+        {
+          fields: [
+            fileEntries.nodeId,
+          ],
+
+          references: [
+            driveNodes.id,
+          ],
+        },
+      ),
+    }),
+  );
+
+export const auditLogsRelations =
+  relations(
+    auditLogs,
+    ({ one }) => ({
+      actor: one(users, {
+        fields: [
+          auditLogs.actorUserId,
+        ],
+
+        references: [
+          users.id,
+        ],
+      }),
+    }),
+  );
+
+/*
+ * Exportované typy
+ */
+
+export type UserRecord =
+  typeof users.$inferSelect;
+
+export type NewUserRecord =
+  typeof users.$inferInsert;
+
+export type SessionRecord =
+  typeof sessions.$inferSelect;
+
+export type DriveNodeRecord =
+  typeof driveNodes.$inferSelect;
+
+export type NewDriveNodeRecord =
+  typeof driveNodes.$inferInsert;
+
+export type FileEntryRecord =
+  typeof fileEntries.$inferSelect;
+
+export type UserRole =
+  (typeof userRoleEnum.enumValues)[number];
+
+export type DriveNodeKind =
+  (typeof driveNodeKindEnum.enumValues)[number];
+
+export type FileStatus =
+  (typeof fileStatusEnum.enumValues)[number];

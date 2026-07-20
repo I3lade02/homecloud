@@ -45,3 +45,58 @@ export interface PiCloudHealth {
     worker: HealthDependency;
   };
 }
+
+export type DriveNodeKind =
+  | "folder"
+  | "file";
+
+export type FileProcessingStatus =
+  | "pending"
+  | "ready"
+  | "quarantined"
+  | "failed";
+
+export interface DriveFileMetadata {
+  sizeBytes: string;
+  mimeType: string;
+  status: FileProcessingStatus;
+}
+
+export interface DriveNode {
+  id: string;
+  parentId: string | null;
+  kind: DriveNodeKind;
+  name: string;
+  isRoot: boolean;
+  createdAt: string;
+  updatedAt: string;
+  file: DriveFileMetadata | null;
+}
+
+export interface DriveBreadcrumb {
+  id: string;
+  name: string;
+  isRoot: boolean;
+}
+
+export interface DriveFolderView {
+  folder: DriveNode;
+  breadcrumbs: DriveBreadcrumb[];
+  children: DriveNode[];
+}
+
+export interface DriveFolderOption {
+  id: string;
+  parentId: string | null;
+  name: string;
+  path: string;
+  isRoot: boolean;
+}
+
+export interface DriveFolderOptionsResponse {
+  folders: DriveFolderOption[];
+}
+
+export interface DriveNodeResponse {
+  node: DriveNode;
+}

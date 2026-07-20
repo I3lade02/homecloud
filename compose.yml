@@ -79,7 +79,7 @@ services:
 
       PICLOUD_NAME: ${PICLOUD_NAME:-PiCloud}
 
-      PICLOUD_VERSION: ${PICLOUD_VERSION:-0.2.0}
+      PICLOUD_VERSION: ${PICLOUD_VERSION:-0.3.0}
 
       DATABASE_URL: ${DATABASE_URL:-postgresql://picloud:picloud-dev-password@postgres:5432/picloud}
 

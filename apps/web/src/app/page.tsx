@@ -61,6 +61,17 @@ export default async function HomePage() {
           </p>
         </div>
 
+        <div className="hero__actions">
+          <a
+            className={
+              "button button--primary"
+            }
+            href="/files"
+          >
+            Otevřít moje soubory
+          </a>
+        </div>
+
         <aside className="account-card">
           <p className="eyebrow">Aktivní účet</p>
 

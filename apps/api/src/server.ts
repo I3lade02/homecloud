@@ -30,6 +30,12 @@ import { registerAuthRoutes } from "./routes/auth-routes";
 
 import { registerSetupRoutes } from "./routes/setup-routes";
 
+import { createRequireAuth } from "./auth/require-auth";
+
+import { createDriveService } from "./drive/drive-service";
+
+import { registerDriveRoutes } from "./routes/drive-routes";
+
 const config = loadApiConfig();
 
 const logger = createLogger("picloud-api");
@@ -74,6 +80,10 @@ const auth = await createAuthService(
   config.SESSION_TTL_DAYS,
 );
 
+const drive = createDriveService(
+  database.db,
+);
+
 const app = Fastify({
   loggerInstance: logger,
 
@@ -81,6 +91,16 @@ const app = Fastify({
 
   genReqId: () => randomUUID(),
 });
+
+app.decorateRequest(
+  "authUser",
+  null,
+);
+
+const requireAuth =
+  createRequireAuth(
+    auth,
+  );
 
 /*
  * Cookie plugin musí být
@@ -297,7 +317,7 @@ app.post<{
 );
 
 await registerSetupRoutes(
-  app,
+  app as any,
 
   {
     auth,
@@ -307,12 +327,21 @@ await registerSetupRoutes(
 );
 
 await registerAuthRoutes(
-  app,
+  app as any,
 
   {
     auth,
 
     cookieSecure: config.COOKIE_SECURE,
+  },
+);
+
+await registerDriveRoutes(
+  app as any,
+
+  {
+    drive,
+    requireAuth,
   },
 );
 
