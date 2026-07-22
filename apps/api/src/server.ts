@@ -36,6 +36,16 @@ import { createDriveService } from "./drive/drive-service";
 
 import { registerDriveRoutes } from "./routes/drive-routes";
 
+import { registerPreviewRoutes } from "./routes/preview-routes";
+
+import { FINALIZE_UPLOAD_JOB_NAME } from "@picloud/contracts";
+
+import { createUploadService } from "./uploads/upload-service";
+
+import { registerUploadRoutes } from "./routes/upload-routes";
+
+import { registerFileRoutes } from "./routes/file-routes";
+
 const config = loadApiConfig();
 
 const logger = createLogger("picloud-api");
@@ -80,8 +90,20 @@ const auth = await createAuthService(
   config.SESSION_TTL_DAYS,
 );
 
-const drive = createDriveService(
+const drive = createDriveService(database.db);
+
+const upload = createUploadService(
   database.db,
+
+  {
+    storagePath: config.STORAGE_PATH,
+
+    maximumUploadBytes: config.MAX_UPLOAD_SIZE_BYTES,
+
+    chunkSizeBytes: config.UPLOAD_CHUNK_SIZE_BYTES,
+
+    sessionTtlHours: config.UPLOAD_SESSION_TTL_HOURS,
+  },
 );
 
 const app = Fastify({
@@ -92,15 +114,24 @@ const app = Fastify({
   genReqId: () => randomUUID(),
 });
 
-app.decorateRequest(
-  "authUser",
-  null,
+app.decorateRequest("authUser", null);
+
+app.addContentTypeParser(
+  "application/offset+octet-stream",
+
+  (_request, payload, done) => {
+    /*
+     * Fastify nebude tělo
+     * shromažďovat do Bufferu.
+     *
+     * Handler obdrží přímo
+     * Readable stream.
+     */
+    done(null, payload);
+  },
 );
 
-const requireAuth =
-  createRequireAuth(
-    auth,
-  );
+const requireAuth = createRequireAuth(auth);
 
 /*
  * Cookie plugin musí být
@@ -114,6 +145,15 @@ await app.register(cors, {
   credentials: true,
 
   methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+
+  allowedHeaders: ["content-type", "upload-offset"],
+
+  exposedHeaders: [
+    "upload-offset",
+    "upload-status",
+    "content-range",
+    "accept-ranges",
+  ],
 });
 
 await app.register(
@@ -342,6 +382,65 @@ await registerDriveRoutes(
   {
     drive,
     requireAuth,
+  },
+);
+
+await registerUploadRoutes(
+  app,
+
+  {
+    upload,
+    requireAuth,
+
+    enqueueFinalization: async (uploadId) => {
+      await systemQueue.add(
+        FINALIZE_UPLOAD_JOB_NAME,
+
+        {
+          uploadId,
+        },
+
+        {
+          attempts: 3,
+
+          backoff: {
+            type: "exponential",
+
+            delay: 2_000,
+          },
+
+          removeOnComplete: {
+            count: 100,
+          },
+
+          removeOnFail: {
+            count: 100,
+          },
+        },
+      );
+    },
+  },
+);
+
+await registerFileRoutes(
+  app,
+
+  {
+    upload,
+    requireAuth,
+
+    storagePath: config.STORAGE_PATH,
+  },
+);
+
+await registerPreviewRoutes(
+  app,
+
+  {
+    upload,
+    requireAuth,
+
+    storagePath: config.STORAGE_PATH,
   },
 );
 

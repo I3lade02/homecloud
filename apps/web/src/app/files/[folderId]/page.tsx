@@ -1,20 +1,10 @@
-import {
-  notFound,
-  redirect,
-} from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
-import {
-  FileManager,
-} from "@/components/file-manager";
+import { FileManager } from "@/components/file-manager";
 
-import {
-  getCurrentUser,
-  getFolderDriveView,
-  getSetupStatus,
-} from "@/lib/api";
+import { getCurrentUser, getFolderDriveView, getSetupStatus } from "@/lib/api";
 
-export const dynamic =
-  "force-dynamic";
+export const dynamic = "force-dynamic";
 
 export default async function FolderPage({
   params,
@@ -23,38 +13,25 @@ export default async function FolderPage({
     folderId: string;
   }>;
 }) {
-  const {
-    folderId,
-  } = await params;
+  const { folderId } = await params;
 
-  const setup =
-    await getSetupStatus();
+  const setup = await getSetupStatus();
 
-  if (
-    !setup.setupComplete
-  ) {
+  if (!setup.setupComplete) {
     redirect("/setup");
   }
 
-  const user =
-    await getCurrentUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  const view =
-    await getFolderDriveView(
-      folderId,
-    );
+  const view = await getFolderDriveView(folderId);
 
   if (!view) {
     notFound();
   }
 
-  return (
-    <FileManager
-      view={view}
-    />
-  );
+  return <FileManager view={view} />;
 }

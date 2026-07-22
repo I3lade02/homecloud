@@ -163,7 +163,7 @@ export async function createAuthService(db: Database, sessionTtlDays: number) {
         normalizedName: "moje soubory",
 
         isRoot: true,
-    });
+      });
 
       await transaction.insert(auditLogs).values({
         actorUserId: createdUser.id,

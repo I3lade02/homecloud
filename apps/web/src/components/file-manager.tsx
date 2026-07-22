@@ -2,14 +2,9 @@
 
 import Link from "next/link";
 
-import {
-  useRouter,
-} from "next/navigation";
+import { useRouter } from "next/navigation";
 
-import {
-  useState,
-  type FormEvent,
-} from "react";
+import { useState, type FormEvent } from "react";
 
 import type {
   DriveFolderOption,
@@ -17,6 +12,8 @@ import type {
   DriveFolderView,
   DriveNode,
 } from "@picloud/contracts";
+
+import { UploadPanel } from "./upload-panel";
 
 type DialogState =
   | {
@@ -36,108 +33,48 @@ interface ApiError {
   message?: string;
 }
 
-function folderHref(
-  id: string,
-  isRoot: boolean,
-): string {
-  return isRoot
-    ? "/files"
-    : `/files/${id}`;
+function folderHref(id: string, isRoot: boolean): string {
+  return isRoot ? "/files" : `/files/${id}`;
 }
 
-function formatBytes(
-  value: string,
-): string {
-  const bytes =
-    Number(value);
+function formatBytes(value: string): string {
+  const bytes = Number(value);
 
-  if (
-    !Number.isFinite(bytes) ||
-    bytes <= 0
-  ) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
     return "0 B";
   }
 
-  const units = [
-    "B",
-    "KB",
-    "MB",
-    "GB",
-    "TB",
-  ];
+  const units = ["B", "KB", "MB", "GB", "TB"];
 
-  const unitIndex =
-    Math.min(
-      Math.floor(
-        Math.log(bytes) /
-          Math.log(1024),
-      ),
+  const unitIndex = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
 
-      units.length - 1,
-    );
+    units.length - 1,
+  );
 
-  const amount =
-    bytes /
-    1024 ** unitIndex;
+  const amount = bytes / 1024 ** unitIndex;
 
-  return `${
-    amount.toFixed(
-      amount >= 10 ||
-      unitIndex === 0
-        ? 0
-        : 1,
-    )
-  } ${units[unitIndex]}`;
+  return `${amount.toFixed(
+    amount >= 10 || unitIndex === 0 ? 0 : 1,
+  )} ${units[unitIndex]}`;
 }
 
-export function FileManager({
-  view,
-}: {
-  view: DriveFolderView;
-}) {
-  const router =
-    useRouter();
+export function FileManager({ view }: { view: DriveFolderView }) {
+  const router = useRouter();
 
-  const [
-    dialog,
-    setDialog,
-  ] = useState<
-    DialogState
-  >(null);
+  const [dialog, setDialog] = useState<DialogState>(null);
 
-  const [
-    name,
-    setName,
-  ] = useState("");
+  const [name, setName] = useState("");
 
-  const [
-    targetParentId,
-    setTargetParentId,
-  ] = useState("");
+  const [targetParentId, setTargetParentId] = useState("");
 
-  const [
-    folderOptions,
-    setFolderOptions,
-  ] = useState<
-    DriveFolderOption[]
-  >([]);
+  const [folderOptions, setFolderOptions] = useState<DriveFolderOption[]>([]);
 
-  const [
-    error,
-    setError,
-  ] = useState<
-    string | null
-  >(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const [
-    busy,
-    setBusy,
-  ] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  const apiUrl =
-    process.env
-      .NEXT_PUBLIC_API_URL ??
-    "http://localhost:4000";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
   function closeDialog() {
     if (busy) {
@@ -155,71 +92,52 @@ export function FileManager({
     setName("");
 
     setDialog({
-      type:
-        "create",
+      type: "create",
     });
   }
 
-  function openRenameDialog(
-    node: DriveNode,
-  ) {
+  function openRenameDialog(node: DriveNode) {
     setError(null);
     setName(node.name);
 
     setDialog({
-      type:
-        "rename",
+      type: "rename",
 
       node,
     });
   }
 
-  async function openMoveDialog(
-    node: DriveNode,
-  ) {
+  async function openMoveDialog(node: DriveNode) {
     setError(null);
     setBusy(true);
 
     try {
-      const response =
-        await fetch(
-          `${apiUrl}/drive/folders`,
+      const response = await fetch(
+        `${apiUrl}/drive/folders`,
 
-          {
-            credentials:
-              "include",
-          },
-        );
+        {
+          credentials: "include",
+        },
+      );
 
       if (!response.ok) {
-        throw new Error(
-          "Nepodařilo se načíst cílové složky.",
-        );
+        throw new Error("Nepodařilo se načíst cílové složky.");
       }
 
-      const payload =
-        await response
-          .json() as
-          DriveFolderOptionsResponse;
+      const payload = (await response.json()) as DriveFolderOptionsResponse;
 
-      setFolderOptions(
-        payload.folders,
-      );
+      setFolderOptions(payload.folders);
 
-      setTargetParentId(
-        node.parentId ?? "",
-      );
+      setTargetParentId(node.parentId ?? "");
 
       setDialog({
-        type:
-          "move",
+        type: "move",
 
         node,
       });
     } catch (caughtError) {
       setError(
-        caughtError instanceof
-          Error
+        caughtError instanceof Error
           ? caughtError.message
           : "Nepodařilo se připravit přesunutí.",
       );
@@ -228,60 +146,59 @@ export function FileManager({
     }
   }
 
+  function formatFileDetails(node: DriveNode): string | null {
+    if (node.kind !== "file" || !node.file?.metadata) {
+      return null;
+    }
+
+    const metadata = node.file.metadata;
+
+    if (
+      metadata.kind === "image" &&
+      typeof metadata.width === "number" &&
+      typeof metadata.height === "number"
+    ) {
+      return `${metadata.width} * ${metadata.height} px`;
+    }
+
+    if (metadata.kind === "pdf" && typeof metadata.pages === "number") {
+      return metadata.pages === 1 ? "1 stránka" : `${metadata.pages} stran`;
+    }
+
+    return null;
+  }
+
   async function sendMutation(
     path: string,
 
-    method:
-      | "POST"
-      | "PATCH",
+    method: "POST" | "PATCH",
 
-    body:
-      Record<
-        string,
-        string
-      >,
+    body: Record<string, string>,
   ) {
-    const response =
-      await fetch(
-        `${apiUrl}${path}`,
+    const response = await fetch(
+      `${apiUrl}${path}`,
 
-        {
-          method,
+      {
+        method,
 
-          credentials:
-            "include",
+        credentials: "include",
 
-          headers: {
-            "content-type":
-              "application/json",
-          },
-
-          body:
-            JSON.stringify(
-              body,
-            ),
+        headers: {
+          "content-type": "application/json",
         },
-      );
+
+        body: JSON.stringify(body),
+      },
+    );
 
     if (!response.ok) {
-      const payload =
-        await response
-          .json()
-          .catch(
-            () => ({}),
-          ) as ApiError;
+      const payload = (await response.json().catch(() => ({}))) as ApiError;
 
-      throw new Error(
-        payload.message ??
-          "Operaci se nepodařilo dokončit.",
-      );
+      throw new Error(payload.message ?? "Operaci se nepodařilo dokončit.");
     }
   }
 
-  async function submitDialog(
-    event:
-      FormEvent<HTMLFormElement>,
-  ) {
+  async function submitDialog(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!dialog) {
@@ -292,32 +209,23 @@ export function FileManager({
     setError(null);
 
     try {
-      if (
-        dialog.type ===
-        "create"
-      ) {
+      if (dialog.type === "create") {
         await sendMutation(
           "/drive/folders",
 
           "POST",
 
           {
-            parentId:
-              view.folder.id,
+            parentId: view.folder.id,
 
             name,
           },
         );
       }
 
-      if (
-        dialog.type ===
-        "rename"
-      ) {
+      if (dialog.type === "rename") {
         await sendMutation(
-          `/drive/folders/${
-            dialog.node.id
-          }`,
+          `/drive/folders/${dialog.node.id}`,
 
           "PATCH",
 
@@ -327,20 +235,14 @@ export function FileManager({
         );
       }
 
-      if (
-        dialog.type ===
-        "move"
-      ) {
+      if (dialog.type === "move") {
         await sendMutation(
-          `/drive/folders/${
-            dialog.node.id
-          }/move`,
+          `/drive/folders/${dialog.node.id}/move`,
 
           "POST",
 
           {
-            parentId:
-              targetParentId,
+            parentId: targetParentId,
           },
         );
       }
@@ -352,8 +254,7 @@ export function FileManager({
       router.refresh();
     } catch (caughtError) {
       setError(
-        caughtError instanceof
-          Error
+        caughtError instanceof Error
           ? caughtError.message
           : "Operaci se nepodařilo dokončit.",
       );
@@ -364,349 +265,239 @@ export function FileManager({
 
   const moveDestinations =
     dialog?.type === "move"
-      ? folderOptions.filter(
-          (folder) =>
-            folder.id !==
-            dialog.node.id,
-        )
+      ? folderOptions.filter((folder) => folder.id !== dialog.node.id)
       : [];
 
   return (
     <main className="drive-shell">
       <header className="drive-topbar">
-        <Link
-          className="brand"
-          href="/"
-        >
-          <span
-            className="brand-mark"
-            aria-hidden="true"
-          >
+        <Link className="brand" href="/">
+          <span className="brand-mark" aria-hidden="true">
             ☁
           </span>
 
           <span>PiCloud</span>
         </Link>
 
-        <button
-          className={
-            "button button--primary"
-          }
-          type="button"
-          onClick={
-            openCreateDialog
-          }
-        >
-          + Nová složka
-        </button>
+        <div className="drive-topbar__actions">
+          <UploadPanel folderId={view.folder.id} />
+
+          <button
+            className={"button button--primary"}
+            type="button"
+            onClick={openCreateDialog}
+          >
+            + Nová složka
+          </button>
+        </div>
       </header>
 
       <section className="drive-heading">
-        <nav
-          className="breadcrumbs"
-          aria-label="Cesta ke složce"
-        >
-          {view.breadcrumbs.map(
-            (
-              breadcrumb,
-              index,
-            ) => (
-              <span
-                key={
-                  breadcrumb.id
-                }
-              >
-                {index > 0 ? (
-                  <span className="breadcrumbs__separator">
-                    /
-                  </span>
-                ) : null}
+        <nav className="breadcrumbs" aria-label="Cesta ke složce">
+          {view.breadcrumbs.map((breadcrumb, index) => (
+            <span key={breadcrumb.id}>
+              {index > 0 ? (
+                <span className="breadcrumbs__separator">/</span>
+              ) : null}
 
-                <Link
-                  href={
-                    folderHref(
-                      breadcrumb.id,
-                      breadcrumb.isRoot,
-                    )
-                  }
-                >
-                  {breadcrumb.name}
-                </Link>
-              </span>
-            ),
-          )}
+              <Link href={folderHref(breadcrumb.id, breadcrumb.isRoot)}>
+                {breadcrumb.name}
+              </Link>
+            </span>
+          ))}
         </nav>
 
         <div>
-          <p className="eyebrow">
-            Moje soubory
-          </p>
+          <p className="eyebrow">Moje soubory</p>
 
-          <h1>
-            {view.folder.name}
-          </h1>
+          <h1>{view.folder.name}</h1>
 
           <p className="drive-heading__meta">
-            {view.children
-              .length === 0
+            {view.children.length === 0
               ? "Prázdná složka"
-              : `${
-                  view.children
-                    .length
-                } položek`}
+              : `${view.children.length} položek`}
           </p>
         </div>
       </section>
 
-      {view.children
-        .length === 0 ? (
+      {view.children.length === 0 ? (
         <section className="drive-empty">
-          <span aria-hidden="true">
-            📂
-          </span>
+          <span aria-hidden="true">📂</span>
 
-          <h2>
-            Tady je zatím ticho.
-          </h2>
+          <h2>Tady je zatím ticho.</h2>
 
-          <p>
-            Vytvoř první složku.
-            Upload souborů dorazí
-            v příštím milníku.
-          </p>
+          <p>Vytvoř první složku. Upload souborů dorazí v příštím milníku.</p>
 
           <button
-            className={
-              "button button--primary"
-            }
+            className={"button button--primary"}
             type="button"
-            onClick={
-              openCreateDialog
-            }
+            onClick={openCreateDialog}
           >
             Vytvořit složku
           </button>
         </section>
       ) : (
-        <section
-          className="drive-grid"
-          aria-label="Obsah složky"
-        >
-          {view.children.map(
-            (node) => {
-              const content = (
-                <>
-                  <span
-                    className={
-                      "drive-card__icon"
-                    }
-                    aria-hidden="true"
-                  >
-                    {node.kind ===
-                    "folder"
+        <section className="drive-grid" aria-label="Obsah složky">
+          {view.children.map((node) => {
+            const content = (
+              <>
+                {node.kind === "file" && node.file?.hasPreview ? (
+                  <span className="drive-card__preview">
+                    <img
+                      src={`${apiUrl}/drive/files/${node.id}/preview`}
+                      alt=""
+                      loading="lazy"
+                    />
+                  </span>
+                ) : (
+                  <span className={"drive-card__icon"} aria-hidden="true">
+                    {node.kind === "folder"
                       ? "📁"
-                      : "📄"}
+                      : node.file?.mimeType === "application/pdf"
+                        ? "📕"
+                        : "📄"}
                   </span>
+                )}
 
-                  <span className="drive-card__name">
-                    {node.name}
-                  </span>
+                <span className="drive-card__name">{node.name}</span>
 
-                  <span className="drive-card__meta">
-                    {node.kind ===
-                    "folder"
-                      ? "Složka"
-                      : node.file
-                        ? formatBytes(
-                            node.file
-                              .sizeBytes,
-                          )
-                        : "Soubor"}
-                  </span>
-                </>
-              );
+                <span className="drive-card__meta">
+                  {node.kind === "folder"
+                    ? "Složka"
+                    : node.file
+                      ? node.file.status === "ready"
+                        ? [
+                            formatBytes(node.file.sizeBytes),
 
-              return (
-                <article
-                  className="drive-card"
-                  key={node.id}
-                >
-                  {node.kind ===
-                  "folder" ? (
-                    <Link
-                      className={
-                        "drive-card__main"
-                      }
-                      href={
-                        folderHref(
-                          node.id,
-                          false,
-                        )
-                      }
+                            formatFileDetails(node),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")
+                        : node.file.status === "failed"
+                          ? "Upload selhal"
+                          : "Zpracovává se"
+                      : "Soubor"}
+                </span>
+              </>
+            );
+
+            return (
+              <article className="drive-card" key={node.id}>
+                {node.kind === "folder" ? (
+                  <Link
+                    className={"drive-card__main"}
+                    href={folderHref(node.id, false)}
+                  >
+                    {content}
+                  </Link>
+                ) : node.file?.status === "ready" ? (
+                  <a
+                    className={"drive-card__main"}
+                    href={`${apiUrl}/drive/files/${node.id}/content?download=1`}
+                  >
+                    {content}
+                  </a>
+                ) : (
+                  <div className="drive-card__main">{content}</div>
+                )}
+
+                {node.kind === "folder" ? (
+                  <div className="drive-card__actions">
+                    <button
+                      type="button"
+                      onClick={() => openRenameDialog(node)}
                     >
-                      {content}
-                    </Link>
-                  ) : (
-                    <div className="drive-card__main">
-                      {content}
-                    </div>
-                  )}
+                      Přejmenovat
+                    </button>
 
-                  {node.kind ===
-                  "folder" ? (
-                    <div className="drive-card__actions">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openRenameDialog(
-                            node,
-                          )
-                        }
-                      >
-                        Přejmenovat
-                      </button>
+                    <button
+                      type="button"
+                      onClick={() => void openMoveDialog(node)}
+                    >
+                      Přesunout
+                    </button>
+                  </div>
+                ) : node.file?.status === "ready" ? (
+                  <div className="drive-card__actions">
+                    <a
+                      href={`${apiUrl}/drive/files/${node.id}/content`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Otevřít
+                    </a>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void openMoveDialog(
-                            node,
-                          )
-                        }
-                      >
-                        Přesunout
-                      </button>
-                    </div>
-                  ) : null}
-                </article>
-              );
-            },
-          )}
+                    <a
+                      href={`${apiUrl}/drive/files/${node.id}/content?download=1`}
+                    >
+                      Stáhnout
+                    </a>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
         </section>
       )}
 
-      {error && !dialog ? (
-        <p className="drive-toast">
-          {error}
-        </p>
-      ) : null}
+      {error && !dialog ? <p className="drive-toast">{error}</p> : null}
 
       {dialog ? (
         <div
           className="dialog-backdrop"
           role="presentation"
-          onMouseDown={
-            closeDialog
-          }
+          onMouseDown={closeDialog}
         >
           <section
             className="drive-dialog"
             role="dialog"
             aria-modal="true"
-            aria-labelledby={
-              "drive-dialog-title"
-            }
-            onMouseDown={(
-              event,
-            ) =>
-              event
-                .stopPropagation()
-            }
+            aria-labelledby={"drive-dialog-title"}
+            onMouseDown={(event) => event.stopPropagation()}
           >
             <p className="eyebrow">
-              {dialog.type ===
-              "create"
+              {dialog.type === "create"
                 ? "Nová složka"
-                : dialog.type ===
-                    "rename"
+                : dialog.type === "rename"
                   ? "Přejmenovat"
                   : "Přesunout"}
             </p>
 
             <h2 id="drive-dialog-title">
-              {dialog.type ===
-              "create"
-                ? `Uvnitř „${
-                    view.folder.name
-                  }“`
+              {dialog.type === "create"
+                ? `Uvnitř „${view.folder.name}“`
                 : dialog.node.name}
             </h2>
 
-            <form
-              className={
-                "drive-dialog__form"
-              }
-              onSubmit={
-                submitDialog
-              }
-            >
-              {dialog.type ===
-              "move" ? (
+            <form className={"drive-dialog__form"} onSubmit={submitDialog}>
+              {dialog.type === "move" ? (
                 <label>
-                  <span>
-                    Cílová složka
-                  </span>
+                  <span>Cílová složka</span>
 
                   <select
-                    value={
-                      targetParentId
-                    }
-                    onChange={(
-                      event,
-                    ) =>
-                      setTargetParentId(
-                        event.target
-                          .value,
-                      )
-                    }
+                    value={targetParentId}
+                    onChange={(event) => setTargetParentId(event.target.value)}
                     required
                     autoFocus
                   >
-                    <option
-                      value=""
-                      disabled
-                    >
-                      Vyber cílovou
-                      složku
+                    <option value="" disabled>
+                      Vyber cílovou složku
                     </option>
 
-                    {moveDestinations
-                      .map(
-                        (
-                          folder,
-                        ) => (
-                          <option
-                            key={
-                              folder.id
-                            }
-                            value={
-                              folder.id
-                            }
-                          >
-                            {
-                              folder.path
-                            }
-                          </option>
-                        ),
-                      )}
+                    {moveDestinations.map((folder) => (
+                      <option key={folder.id} value={folder.id}>
+                        {folder.path}
+                      </option>
+                    ))}
                   </select>
                 </label>
               ) : (
                 <label>
-                  <span>
-                    Název
-                  </span>
+                  <span>Název</span>
 
                   <input
                     value={name}
-                    onChange={(
-                      event,
-                    ) =>
-                      setName(
-                        event.target
-                          .value,
-                      )
-                    }
+                    onChange={(event) => setName(event.target.value)}
                     minLength={1}
                     maxLength={255}
                     required
@@ -715,38 +506,23 @@ export function FileManager({
                 </label>
               )}
 
-              {error ? (
-                <p className="auth-error">
-                  {error}
-                </p>
-              ) : null}
+              {error ? <p className="auth-error">{error}</p> : null}
 
               <div className="drive-dialog__actions">
                 <button
-                  className={
-                    "button button--secondary"
-                  }
+                  className={"button button--secondary"}
                   type="button"
-                  onClick={
-                    closeDialog
-                  }
+                  onClick={closeDialog}
                 >
                   Zrušit
                 </button>
 
-                <button
-                  className={
-                    "button button--primary"
-                  }
-                  disabled={busy}
-                >
+                <button className={"button button--primary"} disabled={busy}>
                   {busy
                     ? "Pracuji…"
-                    : dialog.type ===
-                        "create"
+                    : dialog.type === "create"
                       ? "Vytvořit"
-                      : dialog.type ===
-                          "rename"
+                      : dialog.type === "rename"
                         ? "Uložit název"
                         : "Přesunout"}
                 </button>

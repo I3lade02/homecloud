@@ -15,6 +15,20 @@
       "when": 1784221813151,
       "tag": "0001_pink_mathemanic",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784559773849,
+      "tag": "0002_tense_chat",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1784631292925,
+      "tag": "0003_smiling_edwin_jarvis",
+      "breakpoints": true
     }
   ]
 }

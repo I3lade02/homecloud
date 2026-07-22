@@ -1,6 +1,6 @@
 {
-  "id": "4334cec1-5c7a-49f8-9b64-bf43f327a294",
-  "prevId": "1c7e6146-c6fc-4640-a0e4-b5e64888d6f6",
+  "id": "94af1e7b-feb8-4577-9b33-5615f2b1cb03",
+  "prevId": "881d225d-ad55-48cc-b2e4-bd779c4a9fe4",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -105,14 +105,94 @@
           "name": "audit_logs_actor_user_id_users_id_fk",
           "tableFrom": "audit_logs",
           "tableTo": "users",
-          "columnsFrom": ["actor_user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "actor_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.blobs": {
+      "name": "blobs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "checksum_sha256": {
+          "name": "checksum_sha256",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storage_key": {
+          "name": "storage_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "blobs_checksum_idx": {
+          "name": "blobs_checksum_idx",
+          "columns": [
+            {
+              "expression": "checksum_sha256",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "blobs_checksum_sha256_unique": {
+          "name": "blobs_checksum_sha256_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "checksum_sha256"
+          ]
+        },
+        "blobs_storage_key_unique": {
+          "name": "blobs_storage_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "storage_key"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -274,8 +354,12 @@
           "name": "drive_nodes_owner_id_users_id_fk",
           "tableFrom": "drive_nodes",
           "tableTo": "users",
-          "columnsFrom": ["owner_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -283,8 +367,12 @@
           "name": "drive_nodes_parent_id_drive_nodes_id_fk",
           "tableFrom": "drive_nodes",
           "tableTo": "drive_nodes",
-          "columnsFrom": ["parent_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -310,6 +398,12 @@
           "primaryKey": true,
           "notNull": true
         },
+        "blob_id": {
+          "name": "blob_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "size_bytes": {
           "name": "size_bytes",
           "type": "bigint",
@@ -330,15 +424,41 @@
           "notNull": true,
           "default": "'pending'"
         },
-        "checksum_sha256": {
-          "name": "checksum_sha256",
-          "type": "char(64)",
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
-        "storage_key": {
-          "name": "storage_key",
+        "preview_status": {
+          "name": "preview_status",
+          "type": "file_preview_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "preview_key": {
+          "name": "preview_key",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preview_mime_type": {
+          "name": "preview_mime_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preview_error": {
+          "name": "preview_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "processed_at": {
+          "name": "processed_at",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -372,6 +492,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "file_entries_blob_idx": {
+          "name": "file_entries_blob_idx",
+          "columns": [
+            {
+              "expression": "blob_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -379,16 +514,38 @@
           "name": "file_entries_node_id_drive_nodes_id_fk",
           "tableFrom": "file_entries",
           "tableTo": "drive_nodes",
-          "columnsFrom": ["node_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "node_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "file_entries_blob_id_blobs_id_fk": {
+          "name": "file_entries_blob_id_blobs_id_fk",
+          "tableFrom": "file_entries",
+          "tableTo": "blobs",
+          "columnsFrom": [
+            "blob_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "file_entries_ready_blob_check": {
+          "name": "file_entries_ready_blob_check",
+          "value": "\n        \"file_entries\".\"status\" <> 'ready'\n        OR \"file_entries\".\"blob_id\" IS NOT NULL\n      "
+        }
+      },
       "isRLSEnabled": false
     },
     "public.sessions": {
@@ -490,8 +647,12 @@
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -501,11 +662,190 @@
         "sessions_token_hash_unique": {
           "name": "sessions_token_hash_unique",
           "nullsNotDistinct": false,
-          "columns": ["token_hash"]
+          "columns": [
+            "token_hash"
+          ]
         }
       },
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.upload_sessions": {
+      "name": "upload_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "owner_id": {
+          "name": "owner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "node_id": {
+          "name": "node_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expected_size": {
+          "name": "expected_size",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "received_size": {
+          "name": "received_size",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "status": {
+          "name": "status",
+          "type": "upload_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'created'"
+        },
+        "error_message": {
+          "name": "error_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "upload_sessions_owner_idx": {
+          "name": "upload_sessions_owner_idx",
+          "columns": [
+            {
+              "expression": "owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "upload_sessions_status_idx": {
+          "name": "upload_sessions_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "upload_sessions_expires_idx": {
+          "name": "upload_sessions_expires_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "upload_sessions_owner_id_users_id_fk": {
+          "name": "upload_sessions_owner_id_users_id_fk",
+          "tableFrom": "upload_sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "owner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "upload_sessions_node_id_drive_nodes_id_fk": {
+          "name": "upload_sessions_node_id_drive_nodes_id_fk",
+          "tableFrom": "upload_sessions",
+          "tableTo": "drive_nodes",
+          "columnsFrom": [
+            "node_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "upload_sessions_node_id_unique": {
+          "name": "upload_sessions_node_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "node_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "upload_sessions_size_check": {
+          "name": "upload_sessions_size_check",
+          "value": "\n        \"upload_sessions\".\"expected_size\" >= 0\n        AND \"upload_sessions\".\"received_size\" >= 0\n        AND \"upload_sessions\".\"received_size\"\n          <= \"upload_sessions\".\"expected_size\"\n      "
+        }
+      },
       "isRLSEnabled": false
     },
     "public.users": {
@@ -611,7 +951,9 @@
         "users_email_unique": {
           "name": "users_email_unique",
           "nullsNotDistinct": false,
-          "columns": ["email"]
+          "columns": [
+            "email"
+          ]
         }
       },
       "policies": {},
@@ -623,17 +965,52 @@
     "public.drive_node_kind": {
       "name": "drive_node_kind",
       "schema": "public",
-      "values": ["folder", "file"]
+      "values": [
+        "folder",
+        "file"
+      ]
+    },
+    "public.file_preview_status": {
+      "name": "file_preview_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "processing",
+        "ready",
+        "unsupported",
+        "failed"
+      ]
     },
     "public.file_status": {
       "name": "file_status",
       "schema": "public",
-      "values": ["pending", "ready", "quarantined", "failed"]
+      "values": [
+        "pending",
+        "ready",
+        "quarantined",
+        "failed"
+      ]
+    },
+    "public.upload_status": {
+      "name": "upload_status",
+      "schema": "public",
+      "values": [
+        "created",
+        "uploading",
+        "processing",
+        "completed",
+        "failed",
+        "cancelled"
+      ]
     },
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": ["owner", "admin", "member"]
+      "values": [
+        "owner",
+        "admin",
+        "member"
+      ]
     }
   },
   "schemas": {},

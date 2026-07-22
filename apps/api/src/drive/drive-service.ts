@@ -1,8 +1,4 @@
-import {
-  and,
-  asc,
-  eq,
-} from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 
 import type {
   DriveBreadcrumb,
@@ -19,75 +15,51 @@ import {
   type FileEntryRecord,
 } from "@picloud/database";
 
-const ROOT_FOLDER_NAME =
-  "Moje soubory";
+const ROOT_FOLDER_NAME = "Moje soubory";
 
-const MAX_TREE_DEPTH =
-  256;
+const MAX_TREE_DEPTH = 256;
 
 /*
  * Doménové chyby
  */
 
-export class DriveNodeNotFoundError
-  extends Error {
+export class DriveNodeNotFoundError extends Error {
   constructor() {
-    super(
-      "Složka nebyla nalezena.",
-    );
+    super("Složka nebyla nalezena.");
 
-    this.name =
-      "DriveNodeNotFoundError";
+    this.name = "DriveNodeNotFoundError";
   }
 }
 
-export class DuplicateDriveNameError
-  extends Error {
+export class DuplicateDriveNameError extends Error {
   constructor() {
-    super(
-      "V této složce už položka se stejným názvem existuje.",
-    );
+    super("V této složce už položka se stejným názvem existuje.");
 
-    this.name =
-      "DuplicateDriveNameError";
+    this.name = "DuplicateDriveNameError";
   }
 }
 
-export class InvalidDriveMoveError
-  extends Error {
-  constructor(
-    message =
-      "Složku nelze přesunout do zvoleného umístění.",
-  ) {
+export class InvalidDriveMoveError extends Error {
+  constructor(message = "Složku nelze přesunout do zvoleného umístění.") {
     super(message);
 
-    this.name =
-      "InvalidDriveMoveError";
+    this.name = "InvalidDriveMoveError";
   }
 }
 
-export class RootFolderMutationError
-  extends Error {
+export class RootFolderMutationError extends Error {
   constructor() {
-    super(
-      "Kořenovou složku nelze přejmenovat ani přesunout.",
-    );
+    super("Kořenovou složku nelze přejmenovat ani přesunout.");
 
-    this.name =
-      "RootFolderMutationError";
+    this.name = "RootFolderMutationError";
   }
 }
 
-export class InvalidDriveNameError
-  extends Error {
-  constructor(
-    message =
-      "Název složky není platný.",
-  ) {
+export class InvalidDriveNameError extends Error {
+  constructor(message = "Název složky není platný.") {
     super(message);
 
-    this.name =
-      "InvalidDriveNameError";
+    this.name = "InvalidDriveNameError";
   }
 }
 
@@ -95,19 +67,11 @@ export class InvalidDriveNameError
  * Normalizace názvu.
  */
 
-function prepareDriveName(
-  value: string,
-): {
+export function prepareDriveName(value: string): {
   name: string;
   normalizedName: string;
 } {
-  const name = value
-    .normalize("NFKC")
-    .trim()
-    .replace(
-      /\s+/g,
-      " ",
-    );
+  const name = value.normalize("NFKC").trim().replace(/\s+/g, " ");
 
   if (
     !name ||
@@ -121,28 +85,20 @@ function prepareDriveName(
     );
   }
 
-  if (
-    name.length > 255
-  ) {
-    throw new InvalidDriveNameError(
-      "Název může mít maximálně 255 znaků.",
-    );
+  if (name.length > 255) {
+    throw new InvalidDriveNameError("Název může mít maximálně 255 znaků.");
   }
 
   return {
     name,
 
-    normalizedName:
-      name.toLowerCase(),
+    normalizedName: name.toLowerCase(),
   };
 }
 
-function isUniqueViolation(
-  error: unknown,
-): boolean {
+function isUniqueViolation(error: unknown): boolean {
   return (
-    typeof error ===
-      "object" &&
+    typeof error === "object" &&
     error !== null &&
     "code" in error &&
     (
@@ -161,78 +117,61 @@ function isUniqueViolation(
 function toDriveNode(
   node: DriveNodeRecord,
 
-  file:
-    | FileEntryRecord
-    | null = null,
+  file: FileEntryRecord | null = null,
 ): DriveNode {
   return {
-    id:
-      node.id,
+    id: node.id,
 
-    parentId:
-      node.parentId,
+    parentId: node.parentId,
 
-    kind:
-      node.kind,
+    kind: node.kind,
 
-    name:
-      node.name,
+    name: node.name,
 
-    isRoot:
-      node.isRoot,
+    isRoot: node.isRoot,
 
-    createdAt:
-      node.createdAt
-        .toISOString(),
+    createdAt: node.createdAt.toISOString(),
 
-    updatedAt:
-      node.updatedAt
-        .toISOString(),
+    updatedAt: node.updatedAt.toISOString(),
 
     file:
       file === null
         ? null
         : {
-            sizeBytes:
-              file.sizeBytes
-                .toString(),
+            sizeBytes: file.sizeBytes.toString(),
 
-            mimeType:
-              file.mimeType,
+            mimeType: file.mimeType,
 
-            status:
-              file.status,
+            status: file.status,
+
+            previewStatus: file.previewStatus,
+
+            hasPreview:
+              file.previewStatus === "ready" && Boolean(file.previewKey),
+
+            previewError: file.previewError,
+
+            metadata: file.metadata,
           },
   };
 }
 
-export function createDriveService(
-  db: Database,
-) {
+export function createDriveService(db: Database) {
   async function findOwnedNode(
     ownerId: string,
     nodeId: string,
-  ): Promise<
-    DriveNodeRecord | null
-  > {
-    const [node] =
-      await db
-        .select()
-        .from(driveNodes)
-        .where(
-          and(
-            eq(
-              driveNodes.id,
-              nodeId,
-            ),
+  ): Promise<DriveNodeRecord | null> {
+    const [node] = await db
+      .select()
+      .from(driveNodes)
+      .where(
+        and(
+          eq(driveNodes.id, nodeId),
 
-            eq(
-              driveNodes.ownerId,
-              ownerId,
-            ),
-          ),
-        )
-        .limit(1);
+          eq(driveNodes.ownerId, ownerId),
+        ),
+      )
+      .limit(1);
 
     return node ?? null;
   }
@@ -241,16 +180,9 @@ export function createDriveService(
     ownerId: string,
     folderId: string,
   ): Promise<DriveNodeRecord> {
-    const folder =
-      await findOwnedNode(
-        ownerId,
-        folderId,
-      );
+    const folder = await findOwnedNode(ownerId, folderId);
 
-    if (
-      !folder ||
-      folder.kind !== "folder"
-    ) {
+    if (!folder || folder.kind !== "folder") {
       throw new DriveNodeNotFoundError();
     }
 
@@ -264,36 +196,24 @@ export function createDriveService(
    * který vznikl v Milníku 2.
    */
 
-  async function ensureRootFolder(
-    ownerId: string,
-  ): Promise<DriveNodeRecord> {
-    const [existingRoot] =
-      await db
-        .select()
-        .from(driveNodes)
-        .where(
-          and(
-            eq(
-              driveNodes.ownerId,
-              ownerId,
-            ),
+  async function ensureRootFolder(ownerId: string): Promise<DriveNodeRecord> {
+    const [existingRoot] = await db
+      .select()
+      .from(driveNodes)
+      .where(
+        and(
+          eq(driveNodes.ownerId, ownerId),
 
-            eq(
-              driveNodes.isRoot,
-              true,
-            ),
-          ),
-        )
-        .limit(1);
+          eq(driveNodes.isRoot, true),
+        ),
+      )
+      .limit(1);
 
     if (existingRoot) {
       return existingRoot;
     }
 
-    const preparedName =
-      prepareDriveName(
-        ROOT_FOLDER_NAME,
-      );
+    const preparedName = prepareDriveName(ROOT_FOLDER_NAME);
 
     /*
      * Dva současné requesty
@@ -304,58 +224,42 @@ export function createDriveService(
      * uspět jen jednomu.
      */
 
-    const [createdRoot] =
-      await db
-        .insert(driveNodes)
-        .values({
-          ownerId,
+    const [createdRoot] = await db
+      .insert(driveNodes)
+      .values({
+        ownerId,
 
-          parentId:
-            null,
+        parentId: null,
 
-          kind:
-            "folder",
+        kind: "folder",
 
-          name:
-            preparedName.name,
+        name: preparedName.name,
 
-          normalizedName:
-            preparedName
-              .normalizedName,
+        normalizedName: preparedName.normalizedName,
 
-          isRoot:
-            true,
-        })
-        .onConflictDoNothing()
-        .returning();
+        isRoot: true,
+      })
+      .onConflictDoNothing()
+      .returning();
 
     if (createdRoot) {
       return createdRoot;
     }
 
-    const [rootAfterConflict] =
-      await db
-        .select()
-        .from(driveNodes)
-        .where(
-          and(
-            eq(
-              driveNodes.ownerId,
-              ownerId,
-            ),
+    const [rootAfterConflict] = await db
+      .select()
+      .from(driveNodes)
+      .where(
+        and(
+          eq(driveNodes.ownerId, ownerId),
 
-            eq(
-              driveNodes.isRoot,
-              true,
-            ),
-          ),
-        )
-        .limit(1);
+          eq(driveNodes.isRoot, true),
+        ),
+      )
+      .limit(1);
 
     if (!rootAfterConflict) {
-      throw new Error(
-        "Nepodařilo se vytvořit kořenovou složku.",
-      );
+      throw new Error("Nepodařilo se vytvořit kořenovou složku.");
     }
 
     return rootAfterConflict;
@@ -368,28 +272,20 @@ export function createDriveService(
   async function buildBreadcrumbs(
     ownerId: string,
     start: DriveNodeRecord,
-  ): Promise<
-    DriveBreadcrumb[]
-  > {
-    const breadcrumbs:
-      DriveBreadcrumb[] = [];
+  ): Promise<DriveBreadcrumb[]> {
+    const breadcrumbs: DriveBreadcrumb[] = [];
 
-    let current:
-      | DriveNodeRecord
-      | null = start;
+    let current: DriveNodeRecord | null = start;
 
     let depth = 0;
 
     while (current) {
       breadcrumbs.push({
-        id:
-          current.id,
+        id: current.id,
 
-        name:
-          current.name,
+        name: current.name,
 
-        isRoot:
-          current.isRoot,
+        isRoot: current.isRoot,
       });
 
       if (current.isRoot) {
@@ -398,26 +294,14 @@ export function createDriveService(
 
       depth += 1;
 
-      if (
-        depth >
-          MAX_TREE_DEPTH ||
-        !current.parentId
-      ) {
-        throw new Error(
-          "Souborový strom je poškozený.",
-        );
+      if (depth > MAX_TREE_DEPTH || !current.parentId) {
+        throw new Error("Souborový strom je poškozený.");
       }
 
-      current =
-        await findOwnedNode(
-          ownerId,
-          current.parentId,
-        );
+      current = await findOwnedNode(ownerId, current.parentId);
 
       if (!current) {
-        throw new Error(
-          "Souborový strom obsahuje chybějícího rodiče.",
-        );
+        throw new Error("Souborový strom obsahuje chybějícího rodiče.");
       }
     }
 
@@ -428,154 +312,86 @@ export function createDriveService(
     ownerId: string,
     folderId: string,
   ): Promise<DriveFolderView> {
-    const folder =
-      await requireOwnedFolder(
-        ownerId,
-        folderId,
-      );
+    const folder = await requireOwnedFolder(ownerId, folderId);
 
-    const [
-      breadcrumbs,
-      childRows,
-    ] = await Promise.all([
-      buildBreadcrumbs(
-        ownerId,
-        folder,
-      ),
+    const [breadcrumbs, childRows] = await Promise.all([
+      buildBreadcrumbs(ownerId, folder),
 
       db
         .select({
-          node:
-            driveNodes,
+          node: driveNodes,
 
-          file:
-            fileEntries,
+          file: fileEntries,
         })
         .from(driveNodes)
         .leftJoin(
           fileEntries,
 
-          eq(
-            fileEntries.nodeId,
-            driveNodes.id,
-          ),
+          eq(fileEntries.nodeId, driveNodes.id),
         )
         .where(
           and(
-            eq(
-              driveNodes.ownerId,
-              ownerId,
-            ),
+            eq(driveNodes.ownerId, ownerId),
 
-            eq(
-              driveNodes.parentId,
-              folder.id,
-            ),
+            eq(driveNodes.parentId, folder.id),
           ),
         )
         .orderBy(
-          asc(
-            driveNodes.kind,
-          ),
+          asc(driveNodes.kind),
 
-          asc(
-            driveNodes.normalizedName,
-          ),
+          asc(driveNodes.normalizedName),
         ),
     ]);
 
     return {
-      folder:
-        toDriveNode(folder),
+      folder: toDriveNode(folder),
 
       breadcrumbs,
 
-      children:
-        childRows.map(
-          ({
-            node,
-            file,
-          }) =>
-            toDriveNode(
-              node,
-              file,
-            ),
-        ),
+      children: childRows.map(({ node, file }) => toDriveNode(node, file)),
     };
   }
 
-  async function getRootView(
-    ownerId: string,
-  ): Promise<DriveFolderView> {
-    const root =
-      await ensureRootFolder(
-        ownerId,
-      );
+  async function getRootView(ownerId: string): Promise<DriveFolderView> {
+    const root = await ensureRootFolder(ownerId);
 
-    return getFolderView(
-      ownerId,
-      root.id,
-    );
+    return getFolderView(ownerId, root.id);
   }
 
-  async function createFolder(
-    input: {
-      ownerId: string;
-      parentId: string;
-      name: string;
-    },
-  ): Promise<DriveNode> {
-    await requireOwnedFolder(
-      input.ownerId,
-      input.parentId,
-    );
+  async function createFolder(input: {
+    ownerId: string;
+    parentId: string;
+    name: string;
+  }): Promise<DriveNode> {
+    await requireOwnedFolder(input.ownerId, input.parentId);
 
-    const preparedName =
-      prepareDriveName(
-        input.name,
-      );
+    const preparedName = prepareDriveName(input.name);
 
     try {
-      const [createdFolder] =
-        await db
-          .insert(driveNodes)
-          .values({
-            ownerId:
-              input.ownerId,
+      const [createdFolder] = await db
+        .insert(driveNodes)
+        .values({
+          ownerId: input.ownerId,
 
-            parentId:
-              input.parentId,
+          parentId: input.parentId,
 
-            kind:
-              "folder",
+          kind: "folder",
 
-            name:
-              preparedName.name,
+          name: preparedName.name,
 
-            normalizedName:
-              preparedName
-                .normalizedName,
+          normalizedName: preparedName.normalizedName,
 
-            isRoot:
-              false,
-          })
-          .returning();
+          isRoot: false,
+        })
+        .returning();
 
       if (!createdFolder) {
-        throw new Error(
-          "Složku se nepodařilo vytvořit.",
-        );
+        throw new Error("Složku se nepodařilo vytvořit.");
       }
 
-      return toDriveNode(
-        createdFolder,
-      );
+      return toDriveNode(createdFolder);
     } catch (error) {
-      if (
-        isUniqueViolation(
-          error,
-        )
-      ) {
+      if (isUniqueViolation(error)) {
         throw new DuplicateDriveNameError();
       }
 
@@ -583,71 +399,45 @@ export function createDriveService(
     }
   }
 
-  async function renameFolder(
-    input: {
-      ownerId: string;
-      folderId: string;
-      name: string;
-    },
-  ): Promise<DriveNode> {
-    const folder =
-      await requireOwnedFolder(
-        input.ownerId,
-        input.folderId,
-      );
+  async function renameFolder(input: {
+    ownerId: string;
+    folderId: string;
+    name: string;
+  }): Promise<DriveNode> {
+    const folder = await requireOwnedFolder(input.ownerId, input.folderId);
 
     if (folder.isRoot) {
       throw new RootFolderMutationError();
     }
 
-    const preparedName =
-      prepareDriveName(
-        input.name,
-      );
+    const preparedName = prepareDriveName(input.name);
 
     try {
-      const [updatedFolder] =
-        await db
-          .update(driveNodes)
-          .set({
-            name:
-              preparedName.name,
+      const [updatedFolder] = await db
+        .update(driveNodes)
+        .set({
+          name: preparedName.name,
 
-            normalizedName:
-              preparedName
-                .normalizedName,
+          normalizedName: preparedName.normalizedName,
 
-            updatedAt:
-              new Date(),
-          })
-          .where(
-            and(
-              eq(
-                driveNodes.id,
-                folder.id,
-              ),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(driveNodes.id, folder.id),
 
-              eq(
-                driveNodes.ownerId,
-                input.ownerId,
-              ),
-            ),
-          )
-          .returning();
+            eq(driveNodes.ownerId, input.ownerId),
+          ),
+        )
+        .returning();
 
       if (!updatedFolder) {
         throw new DriveNodeNotFoundError();
       }
 
-      return toDriveNode(
-        updatedFolder,
-      );
+      return toDriveNode(updatedFolder);
     } catch (error) {
-      if (
-        isUniqueViolation(
-          error,
-        )
-      ) {
+      if (isUniqueViolation(error)) {
         throw new DuplicateDriveNameError();
       }
 
@@ -663,25 +453,17 @@ export function createDriveService(
    * složku, přesun by vytvořil cyklus.
    */
 
-  async function assertMoveDoesNotCreateCycle(
-    input: {
-      ownerId: string;
-      sourceFolderId: string;
-      destinationFolderId: string;
-    },
-  ): Promise<void> {
-    let currentId:
-      | string
-      | null =
-        input.destinationFolderId;
+  async function assertMoveDoesNotCreateCycle(input: {
+    ownerId: string;
+    sourceFolderId: string;
+    destinationFolderId: string;
+  }): Promise<void> {
+    let currentId: string | null = input.destinationFolderId;
 
     let depth = 0;
 
     while (currentId) {
-      if (
-        currentId ===
-        input.sourceFolderId
-      ) {
+      if (currentId === input.sourceFolderId) {
         throw new InvalidDriveMoveError(
           "Složku nelze přesunout do ní samotné ani do jejího potomka.",
         );
@@ -689,114 +471,69 @@ export function createDriveService(
 
       depth += 1;
 
-      if (
-        depth >
-        MAX_TREE_DEPTH
-      ) {
-        throw new InvalidDriveMoveError(
-          "Cílová cesta je příliš hluboká.",
-        );
+      if (depth > MAX_TREE_DEPTH) {
+        throw new InvalidDriveMoveError("Cílová cesta je příliš hluboká.");
       }
 
-      const current =
-        await findOwnedNode(
-          input.ownerId,
-          currentId,
-        );
+      const current = await findOwnedNode(input.ownerId, currentId);
 
-      if (
-        !current ||
-        current.kind !== "folder"
-      ) {
+      if (!current || current.kind !== "folder") {
         throw new DriveNodeNotFoundError();
       }
 
-      currentId =
-        current.parentId;
+      currentId = current.parentId;
     }
   }
 
-  async function moveFolder(
-    input: {
-      ownerId: string;
-      folderId: string;
-      parentId: string;
-    },
-  ): Promise<DriveNode> {
-    const folder =
-      await requireOwnedFolder(
-        input.ownerId,
-        input.folderId,
-      );
+  async function moveFolder(input: {
+    ownerId: string;
+    folderId: string;
+    parentId: string;
+  }): Promise<DriveNode> {
+    const folder = await requireOwnedFolder(input.ownerId, input.folderId);
 
     if (folder.isRoot) {
       throw new RootFolderMutationError();
     }
 
-    await requireOwnedFolder(
-      input.ownerId,
-      input.parentId,
-    );
+    await requireOwnedFolder(input.ownerId, input.parentId);
 
     await assertMoveDoesNotCreateCycle({
-      ownerId:
-        input.ownerId,
+      ownerId: input.ownerId,
 
-      sourceFolderId:
-        folder.id,
+      sourceFolderId: folder.id,
 
-      destinationFolderId:
-        input.parentId,
+      destinationFolderId: input.parentId,
     });
 
-    if (
-      folder.parentId ===
-      input.parentId
-    ) {
-      return toDriveNode(
-        folder,
-      );
+    if (folder.parentId === input.parentId) {
+      return toDriveNode(folder);
     }
 
     try {
-      const [updatedFolder] =
-        await db
-          .update(driveNodes)
-          .set({
-            parentId:
-              input.parentId,
+      const [updatedFolder] = await db
+        .update(driveNodes)
+        .set({
+          parentId: input.parentId,
 
-            updatedAt:
-              new Date(),
-          })
-          .where(
-            and(
-              eq(
-                driveNodes.id,
-                folder.id,
-              ),
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(driveNodes.id, folder.id),
 
-              eq(
-                driveNodes.ownerId,
-                input.ownerId,
-              ),
-            ),
-          )
-          .returning();
+            eq(driveNodes.ownerId, input.ownerId),
+          ),
+        )
+        .returning();
 
       if (!updatedFolder) {
         throw new DriveNodeNotFoundError();
       }
 
-      return toDriveNode(
-        updatedFolder,
-      );
+      return toDriveNode(updatedFolder);
     } catch (error) {
-      if (
-        isUniqueViolation(
-          error,
-        )
-      ) {
+      if (isUniqueViolation(error)) {
         throw new DuplicateDriveNameError();
       }
 
@@ -811,124 +548,63 @@ export function createDriveService(
 
   async function listFolderOptions(
     ownerId: string,
-  ): Promise<
-    DriveFolderOption[]
-  > {
-    const folders =
-      await db
-        .select()
-        .from(driveNodes)
-        .where(
-          and(
-            eq(
-              driveNodes.ownerId,
-              ownerId,
-            ),
+  ): Promise<DriveFolderOption[]> {
+    const folders = await db
+      .select()
+      .from(driveNodes)
+      .where(
+        and(
+          eq(driveNodes.ownerId, ownerId),
 
-            eq(
-              driveNodes.kind,
-              "folder",
-            ),
-          ),
-        );
-
-    const byId =
-      new Map(
-        folders.map(
-          (folder) => [
-            folder.id,
-            folder,
-          ],
+          eq(driveNodes.kind, "folder"),
         ),
       );
 
-    const pathCache =
-      new Map<
-        string,
-        string
-      >();
+    const byId = new Map(folders.map((folder) => [folder.id, folder]));
+
+    const pathCache = new Map<string, string>();
 
     function buildPath(
       folder: DriveNodeRecord,
 
-      visited =
-        new Set<string>(),
+      visited = new Set<string>(),
     ): string {
-      const cachedPath =
-        pathCache.get(
-          folder.id,
-        );
+      const cachedPath = pathCache.get(folder.id);
 
       if (cachedPath) {
         return cachedPath;
       }
 
-      if (
-        visited.has(
-          folder.id,
-        )
-      ) {
+      if (visited.has(folder.id)) {
         return folder.name;
       }
 
-      visited.add(
-        folder.id,
-      );
+      visited.add(folder.id);
 
-      const parent =
-        folder.parentId
-          ? byId.get(
-              folder.parentId,
-            )
-          : undefined;
+      const parent = folder.parentId ? byId.get(folder.parentId) : undefined;
 
-      const path =
-        parent
-          ? `${buildPath(
-              parent,
-              visited,
-            )} / ${folder.name}`
-          : folder.name;
+      const path = parent
+        ? `${buildPath(parent, visited)} / ${folder.name}`
+        : folder.name;
 
-      pathCache.set(
-        folder.id,
-        path,
-      );
+      pathCache.set(folder.id, path);
 
       return path;
     }
 
     return folders
-      .map(
-        (folder) => ({
-          id:
-            folder.id,
+      .map((folder) => ({
+        id: folder.id,
 
-          parentId:
-            folder.parentId,
+        parentId: folder.parentId,
 
-          name:
-            folder.name,
+        name: folder.name,
 
-          path:
-            buildPath(
-              folder,
-            ),
+        path: buildPath(folder),
 
-          isRoot:
-            folder.isRoot,
-        }),
-      )
-      .sort(
-        (
-          left,
-          right,
-        ) =>
-          left.path.localeCompare(
-            right.path,
-            "cs-CZ",
-          ),
-      );
+        isRoot: folder.isRoot,
+      }))
+      .sort((left, right) => left.path.localeCompare(right.path, "cs-CZ"));
   }
 
   return {
@@ -941,7 +617,4 @@ export function createDriveService(
   };
 }
 
-export type DriveService =
-  ReturnType<
-    typeof createDriveService
-  >;
+export type DriveService = ReturnType<typeof createDriveService>;

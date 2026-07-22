@@ -34,6 +34,22 @@ const apiSchema = commonSchema.extend({
   COOKIE_SECURE: booleanFromEnvironment.default(false),
 
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+
+  MAX_UPLOAD_SIZE_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(Number.MAX_SAFE_INTEGER)
+    .default(10 * 1024 * 1024 * 1024),
+
+  UPLOAD_CHUNK_SIZE_BYTES: z.coerce
+    .number()
+    .int()
+    .min(256 * 1024)
+    .max(64 * 1024 * 1024)
+    .default(8 * 1024 * 1024),
+
+  UPLOAD_SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(168).default(24),
 });
 
 export type CommonConfig = z.infer<typeof commonSchema>;

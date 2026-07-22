@@ -795,11 +795,7 @@ h1 {
 }
 
 .drive-shell {
-  width:
-    min(
-      1240px,
-      calc(100% - 32px)
-    );
+  width: min(1240px, calc(100% - 32px));
 
   margin: 0 auto;
   padding-bottom: 80px;
@@ -815,39 +811,27 @@ h1 {
 
   gap: 20px;
 
-  border-bottom:
-    1px solid
-    var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .drive-heading {
-  padding:
-    52px 0 34px;
+  padding: 52px 0 34px;
 }
 
 .drive-heading h1 {
   margin: 0;
 
-  font-size:
-    clamp(
-      2.5rem,
-      6vw,
-      4.8rem
-    );
+  font-size: clamp(2.5rem, 6vw, 4.8rem);
 
-  letter-spacing:
-    -0.06em;
+  letter-spacing: -0.06em;
 }
 
 .drive-heading__meta {
-  margin:
-    14px 0 0;
+  margin: 14px 0 0;
 
-  color:
-    var(--muted);
+  color: var(--muted);
 
-  font-size:
-    0.88rem;
+  font-size: 0.88rem;
 }
 
 .breadcrumbs {
@@ -858,11 +842,9 @@ h1 {
 
   margin-bottom: 30px;
 
-  color:
-    var(--muted);
+  color: var(--muted);
 
-  font-size:
-    0.82rem;
+  font-size: 0.82rem;
 }
 
 .breadcrumbs > span {
@@ -872,13 +854,11 @@ h1 {
 }
 
 .breadcrumbs a {
-  transition:
-    color 150ms ease;
+  transition: color 150ms ease;
 }
 
 .breadcrumbs a:hover {
-  color:
-    var(--accent);
+  color: var(--accent);
 }
 
 .breadcrumbs__separator {
@@ -888,14 +868,7 @@ h1 {
 .drive-grid {
   display: grid;
 
-  grid-template-columns:
-    repeat(
-      auto-fill,
-      minmax(
-        220px,
-        1fr
-      )
-    );
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 
   gap: 14px;
 }
@@ -903,17 +876,13 @@ h1 {
 .drive-card {
   overflow: hidden;
 
-  border:
-    1px solid
-    var(--border);
+  border: 1px solid var(--border);
 
   border-radius: 21px;
 
-  background:
-    var(--surface);
+  background: var(--surface);
 
-  backdrop-filter:
-    blur(18px);
+  backdrop-filter: blur(18px);
 
   transition:
     transform 160ms ease,
@@ -922,24 +891,11 @@ h1 {
 }
 
 .drive-card:hover {
-  transform:
-    translateY(-3px);
+  transform: translateY(-3px);
 
-  border-color:
-    rgba(
-      139,
-      211,
-      255,
-      0.3
-    );
+  border-color: rgba(139, 211, 255, 0.3);
 
-  background:
-    rgba(
-      22,
-      33,
-      52,
-      0.86
-    );
+  background: rgba(22, 33, 52, 0.86);
 }
 
 .drive-card__main {
@@ -962,24 +918,11 @@ h1 {
 
   place-items: center;
 
-  border:
-    1px solid
-    rgba(
-      139,
-      211,
-      255,
-      0.16
-    );
+  border: 1px solid rgba(139, 211, 255, 0.16);
 
   border-radius: 16px;
 
-  background:
-    rgba(
-      139,
-      211,
-      255,
-      0.07
-    );
+  background: rgba(139, 211, 255, 0.07);
 
   font-size: 1.85rem;
 }
@@ -992,50 +935,39 @@ h1 {
   font-size: 0.98rem;
   font-weight: 760;
 
-  text-overflow:
-    ellipsis;
+  text-overflow: ellipsis;
 
   white-space: nowrap;
 }
 
 .drive-card__meta {
-  color:
-    var(--muted);
+  color: var(--muted);
 
-  font-size:
-    0.76rem;
+  font-size: 0.76rem;
 }
 
 .drive-card__actions {
   display: grid;
 
-  grid-template-columns:
-    repeat(2, 1fr);
+  grid-template-columns: repeat(2, 1fr);
 
-  border-top:
-    1px solid
-    var(--border);
+  border-top: 1px solid var(--border);
 }
 
 .drive-card__actions button {
   min-height: 40px;
 
   border: 0;
-  border-right:
-    1px solid
-    var(--border);
+  border-right: 1px solid var(--border);
 
-  background:
-    transparent;
+  background: transparent;
 
-  color:
-    var(--muted);
+  color: var(--muted);
 
   cursor: pointer;
 
   font: inherit;
-  font-size:
-    0.72rem;
+  font-size: 0.72rem;
 
   transition:
     color 150ms ease,
@@ -1047,16 +979,9 @@ h1 {
 }
 
 .drive-card__actions button:hover {
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      0.04
-    );
+  background: rgba(255, 255, 255, 0.04);
 
-  color:
-    var(--text);
+  color: var(--text);
 }
 
 .drive-empty {
@@ -1069,24 +994,11 @@ h1 {
 
   padding: 40px;
 
-  border:
-    1px dashed
-    rgba(
-      166,
-      200,
-      255,
-      0.22
-    );
+  border: 1px dashed rgba(166, 200, 255, 0.22);
 
   border-radius: 26px;
 
-  background:
-    rgba(
-      16,
-      24,
-      38,
-      0.36
-    );
+  background: rgba(16, 24, 38, 0.36);
 
   text-align: center;
 }
@@ -1100,23 +1012,16 @@ h1 {
 .drive-empty h2 {
   margin-bottom: 10px;
 
-  font-size:
-    clamp(
-      1.6rem,
-      4vw,
-      2.5rem
-    );
+  font-size: clamp(1.6rem, 4vw, 2.5rem);
 
-  letter-spacing:
-    -0.04em;
+  letter-spacing: -0.04em;
 }
 
 .drive-empty p {
   max-width: 500px;
   margin-bottom: 26px;
 
-  color:
-    var(--muted);
+  color: var(--muted);
 
   line-height: 1.65;
 }
@@ -1131,68 +1036,31 @@ h1 {
 
   padding: 20px;
 
-  background:
-    rgba(
-      2,
-      6,
-      12,
-      0.78
-    );
+  background: rgba(2, 6, 12, 0.78);
 
-  backdrop-filter:
-    blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .drive-dialog {
-  width:
-    min(
-      100%,
-      520px
-    );
+  width: min(100%, 520px);
 
-  padding:
-    clamp(
-      26px,
-      6vw,
-      42px
-    );
+  padding: clamp(26px, 6vw, 42px);
 
-  border:
-    1px solid
-    rgba(
-      166,
-      200,
-      255,
-      0.18
-    );
+  border: 1px solid rgba(166, 200, 255, 0.18);
 
   border-radius: 26px;
 
-  background:
-    #101827;
+  background: #101827;
 
-  box-shadow:
-    0 40px 120px
-    rgba(
-      0,
-      0,
-      0,
-      0.58
-    );
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.58);
 }
 
 .drive-dialog h2 {
   margin-bottom: 26px;
 
-  font-size:
-    clamp(
-      1.7rem,
-      5vw,
-      2.8rem
-    );
+  font-size: clamp(1.7rem, 5vw, 2.8rem);
 
-  letter-spacing:
-    -0.045em;
+  letter-spacing: -0.045em;
 }
 
 .drive-dialog__form {
@@ -1206,11 +1074,9 @@ h1 {
 }
 
 .drive-dialog__form label > span {
-  color:
-    #c2cede;
+  color: #c2cede;
 
-  font-size:
-    0.78rem;
+  font-size: 0.78rem;
   font-weight: 720;
 }
 
@@ -1221,53 +1087,30 @@ h1 {
 
   padding: 0 14px;
 
-  border:
-    1px solid
-    var(--border);
+  border: 1px solid var(--border);
 
   border-radius: 13px;
 
   outline: none;
 
-  background:
-    rgba(
-      4,
-      9,
-      16,
-      0.78
-    );
+  background: rgba(4, 9, 16, 0.78);
 
-  color:
-    var(--text);
+  color: var(--text);
 
   font: inherit;
 }
 
 .drive-dialog__form input:focus,
 .drive-dialog__form select:focus {
-  border-color:
-    rgba(
-      139,
-      211,
-      255,
-      0.64
-    );
+  border-color: rgba(139, 211, 255, 0.64);
 
-  box-shadow:
-    0 0 0 4px
-    rgba(
-      139,
-      211,
-      255,
-      0.08
-    );
+  box-shadow: 0 0 0 4px rgba(139, 211, 255, 0.08);
 }
 
 .drive-dialog__actions {
   display: flex;
 
-  justify-content:
-    flex-end;
+  justify-content: flex-end;
 
   gap: 10px;
 
@@ -1286,47 +1129,20 @@ h1 {
   margin: 0;
   padding: 14px 17px;
 
-  border:
-    1px solid
-    rgba(
-      255,
-      142,
-      158,
-      0.3
-    );
+  border: 1px solid rgba(255, 142, 158, 0.3);
 
   border-radius: 14px;
 
-  background:
-    rgba(
-      52,
-      16,
-      24,
-      0.96
-    );
+  background: rgba(52, 16, 24, 0.96);
 
-  color:
-    #ffc1ca;
+  color: #ffc1ca;
 
-  box-shadow:
-    0 20px 70px
-    rgba(
-      0,
-      0,
-      0,
-      0.45
-    );
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.45);
 }
 
-@media (
-  max-width: 620px
-) {
+@media (max-width: 620px) {
   .drive-shell {
-    width:
-      min(
-        100% - 22px,
-        1240px
-      );
+    width: min(100% - 22px, 1240px);
   }
 
   .drive-topbar {
@@ -1335,11 +1151,9 @@ h1 {
 
   .drive-topbar .button {
     min-height: 40px;
-    padding:
-      0 12px;
+    padding: 0 12px;
 
-    font-size:
-      0.78rem;
+    font-size: 0.78rem;
   }
 
   .drive-heading {
@@ -1347,8 +1161,7 @@ h1 {
   }
 
   .drive-grid {
-    grid-template-columns:
-      1fr;
+    grid-template-columns: 1fr;
   }
 
   .drive-card__main {
@@ -1358,7 +1171,236 @@ h1 {
   .drive-dialog__actions {
     display: grid;
 
-    grid-template-columns:
-      repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* Milestone 4: uploads */
+
+.upload-input {
+  display: none;
+}
+
+.drive-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drive-card__actions--single {
+  grid-template-columns: 1fr;
+}
+
+.drive-card__actions a {
+  display: grid;
+  min-height: 40px;
+  place-items: center;
+
+  color: var(--muted);
+
+  font-size: 0.72rem;
+
+  transition:
+    color 150ms ease,
+    background 150ms ease;
+}
+
+.drive-card__actions a:hover {
+  background: rgba(255, 255, 255, 0.04);
+
+  color: var(--text);
+}
+
+.upload-drawer {
+  position: fixed;
+
+  right: 22px;
+  bottom: 22px;
+  z-index: 90;
+
+  width: min(420px, calc(100vw - 44px));
+
+  overflow: hidden;
+
+  border: 1px solid rgba(166, 200, 255, 0.2);
+
+  border-radius: 20px;
+
+  background: rgba(10, 17, 29, 0.97);
+
+  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.55);
+
+  backdrop-filter: blur(20px);
+}
+
+.upload-drawer__heading {
+  display: flex;
+
+  min-height: 52px;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  padding: 0 17px;
+
+  border-bottom: 1px solid var(--border);
+}
+
+.upload-drawer__heading strong {
+  font-size: 0.86rem;
+}
+
+.upload-drawer__heading button {
+  border: 0;
+  padding: 0;
+
+  background: transparent;
+
+  color: var(--muted);
+
+  cursor: pointer;
+
+  font: inherit;
+  font-size: 0.7rem;
+}
+
+.upload-drawer__heading button:hover {
+  color: var(--text);
+}
+
+.upload-list {
+  display: grid;
+
+  max-height: 390px;
+
+  overflow-y: auto;
+}
+
+.upload-item {
+  padding: 15px 17px;
+
+  border-bottom: 1px solid var(--border);
+}
+
+.upload-item:last-child {
+  border-bottom: 0;
+}
+
+.upload-item__top {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  margin-bottom: 10px;
+}
+
+.upload-item__top strong {
+  overflow: hidden;
+
+  font-size: 0.77rem;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+}
+
+.upload-item__top span {
+  flex: 0 0 auto;
+
+  color: var(--muted);
+
+  font-size: 0.68rem;
+}
+
+.upload-progress {
+  height: 6px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.upload-progress span {
+  display: block;
+
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: linear-gradient(90deg, var(--accent), var(--success));
+
+  transition: width 180ms ease;
+}
+
+.upload-item p {
+  margin: 9px 0 0;
+
+  color: #ffc1ca;
+
+  font-size: 0.69rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 620px) {
+  .drive-topbar__actions {
+    gap: 6px;
+  }
+
+  .drive-topbar__actions .button {
+    padding: 0 10px;
+  }
+
+  .upload-drawer {
+    right: 11px;
+    bottom: 11px;
+
+    width: calc(100vw - 22px);
+  }
+}
+
+/* Milestone 5A: previews */
+
+.drive-card__preview {
+  position: relative;
+
+  display: block;
+
+  width: 100%;
+  height: 112px;
+
+  margin-bottom: 20px;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(139, 211, 255, 0.12);
+
+  border-radius: 15px;
+
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.drive-card__preview img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+.drive-card__main:has(.drive-card__preview) {
+  padding: 15px 15px 22px;
+}
+
+.drive-card__main:has(.drive-card__preview) .drive-card__name,
+.drive-card__main:has(.drive-card__preview) .drive-card__meta {
+  margin-left: 8px;
+  margin-right: 8px;
 }

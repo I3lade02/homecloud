@@ -46,20 +46,33 @@ export interface PiCloudHealth {
   };
 }
 
-export type DriveNodeKind =
-  | "folder"
-  | "file";
+export type DriveNodeKind = "folder" | "file";
 
 export type FileProcessingStatus =
-  | "pending"
-  | "ready"
-  | "quarantined"
-  | "failed";
+  "pending" | "ready" | "quarantined" | "failed";
+
+export type FilePreviewStatus =
+  "pending" | "processing" | "ready" | "unsupported" | "failed";
+
+export type ExtractedFileMetadata = Record<
+  string,
+  string | number | boolean | null
+>;
 
 export interface DriveFileMetadata {
   sizeBytes: string;
+
   mimeType: string;
+
   status: FileProcessingStatus;
+
+  previewStatus: FilePreviewStatus;
+
+  hasPreview: boolean;
+
+  previewError: string | null;
+
+  metadata: ExtractedFileMetadata | null;
 }
 
 export interface DriveNode {
@@ -99,4 +112,47 @@ export interface DriveFolderOptionsResponse {
 
 export interface DriveNodeResponse {
   node: DriveNode;
+}
+
+export const FINALIZE_UPLOAD_JOB_NAME = "finalize-upload";
+
+export interface FinalizeUploadJobData {
+  uploadId: string;
+}
+
+export const PROCESS_FILE_JOB_NAME = "process-file";
+
+export const MAINTENANCE_JOB_NAME = "maintenance";
+
+export const MAINTENANCE_SCHEDULER_ID = "picloud-maintenance";
+
+export interface ProcessFileJobData {
+  nodeId: string;
+}
+
+export type UploadStatus =
+  "created" | "uploading" | "processing" | "completed" | "failed" | "cancelled";
+
+export interface UploadSessionView {
+  id: string;
+  nodeId: string;
+  parentId: string;
+  name: string;
+
+  expectedSizeBytes: string;
+  receivedSizeBytes: string;
+
+  status: UploadStatus;
+
+  errorMessage: string | null;
+
+  createdAt: string;
+  expiresAt: string;
+  completedAt: string | null;
+
+  chunkSizeBytes: number;
+}
+
+export interface UploadSessionResponse {
+  upload: UploadSessionView;
 }

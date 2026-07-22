@@ -79,7 +79,7 @@ services:
 
       PICLOUD_NAME: ${PICLOUD_NAME:-PiCloud}
 
-      PICLOUD_VERSION: ${PICLOUD_VERSION:-0.3.0}
+      PICLOUD_VERSION: ${PICLOUD_VERSION:-0.5.0}
 
       DATABASE_URL: ${DATABASE_URL:-postgresql://picloud:picloud-dev-password@postgres:5432/picloud}
 
@@ -95,6 +95,12 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
 
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
+
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-10737418240}
+
+      UPLOAD_CHUNK_SIZE_BYTES: ${UPLOAD_CHUNK_SIZE_BYTES:-8388608}
+
+      UPLOAD_SESSION_TTL_HOURS: ${UPLOAD_SESSION_TTL_HOURS:-24}
 
     ports:
       - "4000:4000"
